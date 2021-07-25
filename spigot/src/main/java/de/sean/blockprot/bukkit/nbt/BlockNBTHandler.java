@@ -23,20 +23,22 @@ import de.sean.blockprot.nbt.LockReturnValue;
 import de.sean.blockprot.util.BlockProtUtil;
 import de.sean.blockprot.bukkit.BlockProt;
 import de.sean.blockprot.bukkit.util.BlockUtil;
+import de.sean.blockprot.nbt.FriendModifyAction;
+import de.sean.blockprot.nbt.IBlockNBTHandler;
+import de.sean.blockprot.nbt.IFriendHandler;
+import de.sean.blockprot.nbt.LockReturnValue;
+import de.sean.blockprot.util.BlockProtUtil;
 import de.tr7zw.changeme.nbtapi.NBTBlock;
 import de.tr7zw.changeme.nbtapi.NBTCompound;
 import de.tr7zw.changeme.nbtapi.NBTTileEntity;
+import org.bukkit.Bukkit;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -45,14 +47,14 @@ import java.util.stream.Stream;
  *
  * @since 0.2.3
  */
-public final class BlockNBTHandler extends NBTHandler<NBTCompound> {
-    static final String OWNER_ATTRIBUTE = "splugin_owner";
+public final class BlockNBTHandler extends IBlockNBTHandler<NBTCompound, Player, FriendHandler> {
+    public static final String PERMISSION_LOCK = "blockprot.lock";
 
-    static final String OLD_LOCK_ATTRIBUTE = "splugin_lock";
+    public static final String PERMISSION_INFO = "blockprot.info";
 
-    static final String LOCK_ATTRIBUTE = "blockprot_friends";
+    public static final String PERMISSION_ADMIN = "blockprot.admin";
 
-    static final String REDSTONE_ATTRIBUTE = "splugin_lock_redstone";
+    public static final String PERMISSION_BYPASS = "blockprot.bypass";
 
     private static final boolean DEFAULT_REDSTONE = true;
 
@@ -99,11 +101,9 @@ public final class BlockNBTHandler extends NBTHandler<NBTCompound> {
     }
 
     /**
-     * Reads the current owner from the NBT container.
-     *
-     * @return The owner as a UUID-String read from the container, or an empty String.
-     * @since 0.2.3
+     * {@inheritDoc}
      */
+    @Override
     @NotNull
     public String getOwner() {
         if (!container.hasKey(OWNER_ATTRIBUTE)) return "";
@@ -111,12 +111,9 @@ public final class BlockNBTHandler extends NBTHandler<NBTCompound> {
     }
 
     /**
-     * Set the current owner of this block.
-     *
-     * @param owner The new owner for this block. Should
-     *              be a valid UUID.
-     * @since 0.2.3
+     * {@inheritDoc}
      */
+    @Override
     public void setOwner(@NotNull final String owner) {
         container.setString(OWNER_ATTRIBUTE, owner);
     }
@@ -138,12 +135,9 @@ public final class BlockNBTHandler extends NBTHandler<NBTCompound> {
     }
 
     /**
-     * Gets a {@link Stream} of {@link FriendHandler} for this block.
-     *
-     * @return A stream of friend handlers for all NBT compounds under
-     * the friend key.
-     * @since 0.3.0
+     * {@inheritDoc}
      */
+    @Override
     @NotNull
     public Stream<FriendHandler> getFriendsStream() {
         remapAccess();
@@ -157,78 +151,42 @@ public final class BlockNBTHandler extends NBTHandler<NBTCompound> {
     }
 
     /**
-     * Gets a {@link List} of friends for this block.
-     *
-     * @return A list of {@link FriendHandler} to read
-     * additional data for each friend.
-     * @since 0.3.0
+     * {@inheritDoc}
      */
-    @NotNull
-    public List<FriendHandler> getFriends() {
-        return getFriendsStream().collect(Collectors.toList());
-    }
-
-    /**
-     * Set a new list of FriendHandler for the friends list.
-     *
-     * @param access The new list of friends to use.
-     * @since 0.3.0
-     */
+    @Override
     public void setFriends(@NotNull final List<FriendHandler> access) {
         container.removeKey(LOCK_ATTRIBUTE);
         if (!access.isEmpty()) {
             NBTCompound compound = container.addCompound(LOCK_ATTRIBUTE);
-            for (FriendHandler handler : access) {
+            for (IFriendHandler<?, ?> handler : access) {
                 NBTCompound newCompound = compound.addCompound(handler.getName());
-                newCompound.mergeCompound(handler.container);
+                newCompound.mergeCompound((NBTCompound) handler.getContainer());
             }
         }
     }
 
     /**
-     * Filters the results of {@link #getFriends()} for any entry which
-     * id qualifies for {@link String#equals(Object)}.
-     *
-     * @param id The String ID to check for. Usually a UUID as a String as {@link UUID#toString()}.
-     * @return The first {@link FriendHandler} found, or none.
-     * @since 0.3.0
+     * {@inheritDoc}
      */
-    @NotNull
-    public Optional<FriendHandler> getFriend(@NotNull final String id) {
-        return getFriendsStream()
-            .filter((f) -> f.getName().equals(id))
-            .findFirst();
-    }
-
-    /**
-     * Adds a new friend to the NBT.
-     *
-     * @param friend The friend to add.
-     * @since 0.3.0
-     */
+    @Override
     public void addFriend(@NotNull final String friend) {
         NBTCompound compound = container.getOrCreateCompound(LOCK_ATTRIBUTE);
         compound.addCompound(friend).setString("id", friend);
     }
 
     /**
-     * Removes a friend from the NBT.
-     *
-     * @param friend The friend to remove.
-     * @since 0.3.0
+     * {@inheritDoc}
      */
+    @Override
     public void removeFriend(@NotNull final String friend) {
         NBTCompound compound = container.getOrCreateCompound(LOCK_ATTRIBUTE);
         compound.removeKey(friend);
     }
 
     /**
-     * If true, redstone should be allowed for this block and should not be blocked.
-     * If redstone has not been set for this block yet, the default value is true
-     *
-     * @return Whether redstone should be allowed or not.
-     * @since 0.2.3
+     * {@inheritDoc}
      */
+    @Override
     public boolean getRedstone() {
         // We will default to 'true'. The default value for a boolean is 'false',
         // which would also be the default value for NBTCompound#getBoolean
@@ -240,57 +198,11 @@ public final class BlockNBTHandler extends NBTHandler<NBTCompound> {
     }
 
     /**
-     * Set the new value for redstone. See {@link #getRedstone()} for more
-     * details on the values.
-     *
-     * @param redstone The boolean value to set.
-     * @since 0.2.3
+     * {@inheritDoc}
      */
+    @Override
     public void setRedstone(final boolean redstone) {
         container.setBoolean(REDSTONE_ATTRIBUTE, redstone);
-    }
-
-    /**
-     * Whether or not this block is protected. This is evaluated by checking
-     * if an owner exists and if any friends have been added to the block.
-     *
-     * @return True, if this block is not protected and there is no owner.
-     * @since 0.2.3
-     */
-    public boolean isNotProtected() {
-        return getOwner().isEmpty() && getFriends().isEmpty();
-    }
-
-    /**
-     * @return True, if this block is protected.
-     * @see #isNotProtected()
-     * @since 0.2.3
-     */
-    public boolean isProtected() {
-        return !isNotProtected();
-    }
-
-    /**
-     * Checks whether or not given {@code player} is the owner of this block.
-     *
-     * @param player A String representing a players UUID.
-     * @return Whether or not {@code player} is the owner of this block.
-     * @since 0.2.3
-     */
-    public boolean isOwner(@NotNull final String player) {
-        return getOwner().equals(player);
-    }
-
-    /**
-     * Checks whether or not given {@code player} can access this block.
-     *
-     * @param player The player to check for.
-     * @return True, if {@code player} can access this block.
-     * @since 0.2.3
-     */
-    public boolean canAccess(@NotNull final String player) {
-        Optional<FriendHandler> friend = getFriend(player);
-        return !isProtected() || (getOwner().equals(player) || (friend.isPresent() && friend.get().canRead()));
     }
 
     /**
@@ -311,13 +223,9 @@ public final class BlockNBTHandler extends NBTHandler<NBTCompound> {
     }
 
     /**
-     * Locks this block for given {@code player} as the owner.
-     *
-     * @param player The player to set as an owner.
-     * @return A {@link LockReturnValue} whether the block was successfully locked,
-     * else there might have been issues with permissions.
-     * @since 0.4.6
+     * {@inheritDoc}
      */
+    @Override
     @NotNull
     public LockReturnValue lockBlock(@NotNull final Player player) {
         String owner = getOwner();
@@ -357,17 +265,10 @@ public final class BlockNBTHandler extends NBTHandler<NBTCompound> {
     }
 
     /**
-     * Locks redstone for this block.
-     *
-     * @param player The player requesting this command, should be the owner.
-     * @param value  The value we want to set it to. If null, we just flip
-     *               the current value.
-     * @return A {@link LockReturnValue} whether or not the redstone was switched
-     * successfully.
-     * @since 0.4.6
+     * {@inheritDoc}
+     * @return
      */
-    @NotNull
-    public LockReturnValue lockRedstoneForBlock(@NotNull final String player, @Nullable final Boolean value) {
+    public @NotNull LockReturnValue lockRedstoneForBlock(@NotNull final String player, @Nullable final Boolean value) {
         if (isOwner(player)) {
             boolean redstone = value == null ? !getRedstone() : value;
             setRedstone(redstone);
@@ -375,20 +276,6 @@ public final class BlockNBTHandler extends NBTHandler<NBTCompound> {
             return new LockReturnValue(true);
         }
         return new LockReturnValue(false);
-    }
-
-    /**
-     * Checks whether or not {@code friends} contains {@code friend}.
-     *
-     * @param friends A list of all friends we want to filter.
-     * @param friend  The UUID of a player we want to check for.
-     * @return True, if the list does contain that friend.
-     * @since 0.3.0
-     */
-    private boolean containsFriend(@NotNull final List<FriendHandler> friends, @NotNull final String friend) {
-        return friends
-            .stream()
-            .anyMatch((f) -> f.getName().equals(friend));
     }
 
     /**
@@ -410,14 +297,7 @@ public final class BlockNBTHandler extends NBTHandler<NBTCompound> {
     }
 
     /**
-     * Modifies the friends of this block for given {@code action}.
-     *
-     * @param player The player requesting this command, should be the owner.
-     * @param friend The friend do to {@code action} with.
-     * @param action The action we should perform with {@code friend} on this block.
-     * @return A {@link LockReturnValue} whether or not the friends were modified
-     * successfully.
-     * @since 0.4.6
+     * {@inheritDoc}
      */
     @NotNull
     public LockReturnValue modifyFriends(@NotNull final String player, @NotNull final String friend, @NotNull final FriendModifyAction action) {
@@ -447,6 +327,7 @@ public final class BlockNBTHandler extends NBTHandler<NBTCompound> {
                 }
             }
             default: {
+                Bukkit.getLogger().warning("modifyFriends: Unknown error occured.");
                 return new LockReturnValue(false);
             }
         }
@@ -472,16 +353,9 @@ public final class BlockNBTHandler extends NBTHandler<NBTCompound> {
     }
 
     /**
-     * This applies any changes to this container to a possible other
-     * half. For example doors consist from two blocks, as do double
-     * chests. Without this call, all methods will modify only the local,
-     * current block.
-     * <p>
-     * This method is specifically not called on each modification of NBT,
-     * as this would be a massive, unnecessary performance penalty.
-     *
-     * @since 0.4.6
+     * {@inheritDoc}
      */
+    @Override
     public void applyToOtherContainer() {
         if (BlockProt.getDefaultConfig().isLockableDoor(block.getType())) {
             final Block otherDoor = BlockUtil.getOtherDoorHalf(block.getState());
@@ -497,31 +371,9 @@ public final class BlockNBTHandler extends NBTHandler<NBTCompound> {
         }
     }
 
-    /**
-     * Clears all values from this block and resets it to the
-     * defaults.
-     *
-     * @since 0.3.2
-     */
-    public void clear() {
-        this.setOwner("");
-        this.setFriends(Collections.emptyList());
-        this.setRedstone(DEFAULT_REDSTONE);
-    }
-
-    /**
-     * Merges this handler with another {@link NBTHandler}.
-     *
-     * @param handler The handler to merge with. If {@code handler} is not an instance
-     *                of {@link BlockNBTHandler}, this will do nothing.
-     * @since 0.3.2
-     */
     @Override
-    public void mergeHandler(@NotNull NBTHandler<?> handler) {
-        if (!(handler instanceof BlockNBTHandler)) return;
-        final BlockNBTHandler blockNBTHandler = (BlockNBTHandler) handler;
-        this.setOwner(blockNBTHandler.getOwner());
-        this.setFriends(blockNBTHandler.getFriends());
-        this.setRedstone(blockNBTHandler.getRedstone());
+    public @NotNull String getName() {
+        String name = container.getName();
+        return name == null ? "" : name;
     }
 }

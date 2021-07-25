@@ -18,11 +18,14 @@
 
 package de.sean.blockprot.bukkit.inventories;
 
+import de.sean.blockprot.bukkit.nbt.BlockNBTHandler;
+import de.sean.blockprot.bukkit.nbt.FriendHandler;
+import de.sean.blockprot.bukkit.nbt.PlayerSettingsHandler;
+import de.sean.blockprot.bukkit.translation.TranslationKey;
+import de.sean.blockprot.bukkit.translation.Translator;
 import de.sean.blockprot.nbt.FriendModifyAction;
 import de.sean.blockprot.nbt.LockReturnValue;
-import de.sean.blockprot.bukkit.TranslationKey;
-import de.sean.blockprot.bukkit.Translator;
-import de.sean.blockprot.bukkit.nbt.*;
+import de.sean.blockprot.screens.BlockProtScreen;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
@@ -51,18 +54,18 @@ import java.util.stream.Stream;
  *
  * @since 0.2.2
  */
-public abstract class BlockProtInventory implements InventoryHolder {
+public abstract class BlockProtBukkitScreen implements InventoryHolder, BlockProtScreen<Material, TranslationKey> {
     /**
      * @since 0.2.2
      */
     protected final Inventory inventory;
 
     /**
-     * Creates a new inventory using {@link BlockProtInventory#createInventory()}.
+     * Creates a new inventory using {@link BlockProtBukkitScreen#createInventory()}.
      *
      * @since 0.2.2
      */
-    public BlockProtInventory() {
+    public BlockProtBukkitScreen() {
         inventory = createInventory();
     }
 
@@ -77,15 +80,6 @@ public abstract class BlockProtInventory implements InventoryHolder {
     public final Inventory getInventory() {
         return inventory;
     }
-
-    /**
-     * Get the size of this inventory, which should be a multiple of 9 with a maximum value of 6 *
-     * 9.
-     *
-     * @return The size of this inventory.
-     * @since 0.2.2
-     */
-    abstract int getSize();
 
     /**
      * Gets the translated name of this inventory, or an empty String if not translatable, by
@@ -104,8 +98,9 @@ public abstract class BlockProtInventory implements InventoryHolder {
      * found.
      * @since 0.2.2
      */
+    @Override
     @NotNull
-    public final String getDefaultInventoryName() {
+    public final String getDefaultScreenName() {
         final String inventoryName = getTranslatedInventoryName();
         return inventoryName.isEmpty() ? this.getClass().getSimpleName() : inventoryName;
     }
@@ -129,7 +124,7 @@ public abstract class BlockProtInventory implements InventoryHolder {
     public abstract void onClose(@NotNull final InventoryCloseEvent event, @NotNull final InventoryState state);
 
     /**
-     * Create this current inventory. If {@link BlockProtInventory#getTranslatedInventoryName()}
+     * Create this current inventory. If {@link BlockProtBukkitScreen#getTranslatedInventoryName()}
      * returns an empty String, this class's simple name will be used.
      *
      * @return The Bukkit Inventory.
@@ -137,7 +132,7 @@ public abstract class BlockProtInventory implements InventoryHolder {
      */
     @NotNull
     protected final Inventory createInventory() {
-        return Bukkit.createInventory(this, getSize(), getDefaultInventoryName());
+        return Bukkit.createInventory(this, getRows(), getDefaultScreenName());
     }
 
     /**
@@ -278,6 +273,7 @@ public abstract class BlockProtInventory implements InventoryHolder {
      *
      * @since 0.2.3
      */
+    @Override
     public void setBackButton() {
         setBackButton(inventory.getSize() - 1);
     }
@@ -288,8 +284,14 @@ public abstract class BlockProtInventory implements InventoryHolder {
      * @param index The index of the back button inside this inventory.
      * @since 0.2.3
      */
+    @Override
     public void setBackButton(int index) {
         setItemStack(index, Material.BLACK_STAINED_GLASS_PANE, TranslationKey.INVENTORIES__BACK);
+    }
+
+    @Deprecated
+    public void setItemStack(int index, Material material) {
+        setItemStack(index, material, "");
     }
 
     /**

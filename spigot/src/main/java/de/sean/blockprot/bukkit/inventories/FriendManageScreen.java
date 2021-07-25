@@ -19,12 +19,12 @@
 package de.sean.blockprot.bukkit.inventories;
 
 import de.sean.blockprot.bukkit.BlockProt;
-import de.sean.blockprot.bukkit.TranslationKey;
-import de.sean.blockprot.bukkit.Translator;
 import de.sean.blockprot.bukkit.integrations.PluginIntegration;
 import de.sean.blockprot.bukkit.inventories.InventoryState.FriendSearchState;
 import de.sean.blockprot.bukkit.nbt.BlockNBTHandler;
 import de.sean.blockprot.bukkit.nbt.PlayerSettingsHandler;
+import de.sean.blockprot.bukkit.translation.TranslationKey;
+import de.sean.blockprot.bukkit.translation.Translator;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
@@ -41,11 +41,11 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-public final class FriendManageInventory extends BlockProtInventory {
+public final class FriendManageScreen extends BlockProtBukkitScreen {
     private int maxSkulls = InventoryConstants.tripleLine - 4;
 
     @Override
-    public int getSize() {
+    public int getRows() {
         return InventoryConstants.tripleLine;
     }
 
@@ -56,8 +56,8 @@ public final class FriendManageInventory extends BlockProtInventory {
     }
 
     /**
-     * Exits this inventory depending on {@code state}'s {@link FriendSearchState} back to the {@link BlockLockInventory}
-     * or the {@link UserSettingsInventory} respectively.
+     * Exits this inventory depending on {@code state}'s {@link FriendSearchState} back to the {@link BlockLockScreen}
+     * or the {@link UserSettingsScreen} respectively.
      *
      * @param player The player to open/close the inventory for.
      * @param state  The {@code player}'s state.
@@ -68,7 +68,7 @@ public final class FriendManageInventory extends BlockProtInventory {
             case FRIEND_SEARCH: {
                 if (state.getBlock() == null) return;
                 newInventory =
-                    new BlockLockInventory()
+                    new BlockLockScreen()
                         .fill(
                             player,
                             state.getBlock().getState().getType(),
@@ -76,7 +76,7 @@ public final class FriendManageInventory extends BlockProtInventory {
                 break;
             }
             case DEFAULT_FRIEND_SEARCH:
-                newInventory = new UserSettingsInventory().fill(player);
+                newInventory = new UserSettingsScreen().fill(player);
                 break;
             default:
                 return;
@@ -120,7 +120,7 @@ public final class FriendManageInventory extends BlockProtInventory {
                 int index = findItemIndex(item);
                 if (index < 0 || index >= state.friendResultCache.size()) break;
                 state.currentFriend = state.friendResultCache.get(index);
-                final Inventory inv = new FriendDetailInventory().fill(player);
+                final Inventory inv = new FriendDetailScreen().fill(player);
                 closeAndOpen(player, inv);
                 break;
             }
@@ -183,7 +183,7 @@ public final class FriendManageInventory extends BlockProtInventory {
         int pageOffset = maxSkulls * state.friendPage;
         for (int i = pageOffset; i < Math.min(players.size() - pageOffset, maxSkulls); i++) {
             final OfflinePlayer curPlayer = players.get(i);
-            ((BlockProtInventory) Objects.requireNonNull(inventory.getHolder()))
+            ((BlockProtBukkitScreen) Objects.requireNonNull(inventory.getHolder()))
                 .setItemStack(i, Material.SKELETON_SKULL, curPlayer.getName());
             state.friendResultCache.add(curPlayer);
         }
@@ -211,7 +211,7 @@ public final class FriendManageInventory extends BlockProtInventory {
             () -> {
                 int i = 0;
                 while (i < maxSkulls && i < state.friendResultCache.size()) {
-                    ((BlockProtInventory) Objects.requireNonNull(inventory.getHolder()))
+                    ((BlockProtBukkitScreen) Objects.requireNonNull(inventory.getHolder()))
                         .setPlayerSkull(i, state.friendResultCache.get(i));
                     i++;
                 }

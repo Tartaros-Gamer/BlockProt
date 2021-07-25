@@ -19,10 +19,10 @@
 package de.sean.blockprot.bukkit.inventories;
 
 import de.sean.blockprot.bukkit.BlockProt;
-import de.sean.blockprot.bukkit.TranslationKey;
-import de.sean.blockprot.bukkit.Translator;
 import de.sean.blockprot.bukkit.nbt.BlockNBTHandler;
 import de.sean.blockprot.bukkit.nbt.FriendHandler;
+import de.sean.blockprot.bukkit.translation.TranslationKey;
+import de.sean.blockprot.bukkit.translation.Translator;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
@@ -36,9 +36,9 @@ import org.jetbrains.annotations.NotNull;
 import java.util.List;
 import java.util.UUID;
 
-public class BlockInfoInventory extends BlockProtInventory {
+public class BlockInfoScreen extends BlockProtBukkitScreen {
     @Override
-    int getSize() {
+    public int getRows() {
         return InventoryConstants.tripleLine;
     }
 
@@ -59,7 +59,7 @@ public class BlockInfoInventory extends BlockProtInventory {
                 BlockNBTHandler handler = new BlockNBTHandler(state.getBlock());
                 closeAndOpen(
                     player,
-                    new BlockLockInventory().fill(player, state.getBlock().getType(), handler)
+                    new BlockLockScreen().fill(player, state.getBlock().getType(), handler)
                 );
                 break;
             case CYAN_STAINED_GLASS_PANE:

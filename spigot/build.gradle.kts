@@ -2,10 +2,6 @@ buildscript {
     dependencies {
         classpath("org.ec4j.core:ec4j-core:0.3.0")
     }
-
-    repositories {
-        maven("https://plugins.gradle.org/m2/")
-    }
 }
 
 plugins {

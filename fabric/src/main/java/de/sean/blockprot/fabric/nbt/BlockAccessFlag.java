@@ -16,11 +16,10 @@
  * along with BlockProt.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package de.sean.blockprot.bukkit.nbt;
+package de.sean.blockprot.fabric.nbt;
 
-
-import de.sean.blockprot.bukkit.translation.TranslationKey;
-import de.sean.blockprot.bukkit.translation.Translator;
+import de.sean.blockprot.fabric.translation.TranslationIdentifier;
+import net.minecraft.text.TranslatableText;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -34,14 +33,14 @@ public enum BlockAccessFlag {
      *
      * @since 0.2.3
      */
-    READ(TranslationKey.INVENTORIES__FRIENDS__PERMISSIONS__READ),
+    READ(TranslationIdentifier.SCREEN_FRIENDS_PERMISSION_READ),
 
     /**
      * The user is allowed to add and remove contents of the inventory.
      *
      * @since 0.2.3
      */
-    WRITE(TranslationKey.INVENTORIES__FRIENDS__PERMISSIONS__WRITE);
+    WRITE(TranslationIdentifier.SCREEN_FRIENDS_PERMISSION_WRITE);
 
     /**
      * The translation key used for the description of this flag.
@@ -49,12 +48,12 @@ public enum BlockAccessFlag {
      * @since 0.2.3
      */
     @NotNull
-    private final TranslationKey descriptionKey;
+    private final TranslationIdentifier descriptionKey;
 
     /**
      * @since 0.2.3
      */
-    BlockAccessFlag(@NotNull final TranslationKey description) {
+    BlockAccessFlag(@NotNull final TranslationIdentifier description) {
         this.descriptionKey = description;
     }
 
@@ -139,15 +138,14 @@ public enum BlockAccessFlag {
     }
 
     /**
-     * Get the translated description of this flag. It uses {@link Translator#get(TranslationKey)}
-     * using the {@link #descriptionKey} to get the corresponding value.
+     * Get the translated description of this flag.
      *
      * @return Translated description.
      * @since 0.2.3
      */
     @NotNull
-    public String getDescription() {
-        return Translator.get(descriptionKey);
+    public TranslatableText getDescription() {
+        return this.descriptionKey.asTranslatableText();
     }
 
     /**
